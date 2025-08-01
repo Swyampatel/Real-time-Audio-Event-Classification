@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+audio_env/
+audio_security/
+
+# Dataset files (too large for deployment)
+archive*/
+fold*/
+*.wav
+*.mp3
+*.flac
+*.m4a
+
+# Training artifacts
+training_history.png
+*.h5
+*.pkl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/

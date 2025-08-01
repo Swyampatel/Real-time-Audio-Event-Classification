@@ -1,0 +1,14 @@
+# Windows-specific requirements (Python 3.12 compatible)
+numpy>=1.24.0
+tensorflow-cpu>=2.15.0
+librosa>=0.10.0
+flask>=2.3.0
+flask-socketio>=5.3.0
+python-socketio>=5.9.0
+scipy>=1.11.0
+pydub>=0.25.0
+soundfile>=0.12.0
+setuptools>=65.0.0
+
+# For Windows development
+waitress>=2.1.0

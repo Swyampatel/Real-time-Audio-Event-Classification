@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Security Monitor | Real-time Detection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #161616;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-card-hover: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.5);
+            --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+            z-index: -1;
+            animation: backgroundShift 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        /* Modern header */
+        .header {
+            backdrop-filter: blur(20px);
+            background: rgba(10, 10, 10, 0.8);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--bg-card);
+            padding: 0.75rem 1.5rem;
+            border-radius: 100px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.connected {
+            background: var(--success);
+            box-shadow: 0 0 20px var(--success);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-indicator.recording {
+            background: var(--danger);
+            box-shadow: 0 0 20px var(--danger);
+        }
+
+        /* Main container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            animation: fadeIn 0.8s ease-out 0.3s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Modern card design */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            background: var(--bg-card-hover);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--accent-primary);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Audio visualizer card */
+        .visualizer-card {
+            grid-column: span 2;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+        }
+
+        .current-detection {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .detection-class {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .confidence-meter {
+            max-width: 400px;
+            margin: 0 auto 2rem;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 100px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .confidence-text {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Modern buttons */
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-danger {
+            background: var(--gradient-danger);
+            color: white;
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Audio waveform */
+        .waveform-container {
+            height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .waveform-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* File upload section */
+        .upload-section {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border: 2px dashed rgba(59, 130, 246, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            transition: all 0.4s ease;
+            margin-top: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-section:hover::before {
+            left: 100%;
+        }
+
+        .upload-section:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.15);
+        }
+
+        .upload-section.drag-over {
+            border-color: rgba(16, 185, 129, 0.6);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .upload-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--accent-primary);
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-section:hover .upload-icon {
+            transform: scale(1.1) translateY(-5px);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+        }
+
+        .upload-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .upload-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .upload-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .upload-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: var(--text-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-label::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-label:hover::before {
+            left: 100%;
+        }
+
+        .upload-label:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+        }
+
+        .upload-label.has-file {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .analyze-btn {
+            position: relative;
+            overflow: hidden;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .analyze-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .analyze-btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .analyze-btn.loading {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.7) 0%, rgba(139, 92, 246, 0.7) 100%);
+        }
+
+        .supported-formats {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .format-tag {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Alerts section */
+        .alert-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .alert-critical {
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .alert-high {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .alert-medium {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .alert-low {
+            border-color: var(--accent-primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        /* Probability chart */
+        .probability-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .prob-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .prob-label {
+            width: 140px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .prob-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            border-radius: 100px;
+            transition: width 0.3s ease;
+        }
+
+        .prob-value {
+            width: 60px;
+            text-align: right;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        /* Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .visualizer-card {
+                grid-column: span 1;
+            }
+            
+            .detection-class {
+                font-size: 2rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+            20%, 40%, 60%, 80% { transform: translateX(8px); }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-card);
+            border-radius: 6px;
+            border: 3px solid var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Audio Security Monitor</h1>
+                    <p>Real-time threat detection system</p>
+                </div>
+            </div>
+            <div class="status-badge">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="connectionStatus">Connecting...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="dashboard-grid">
+            <!-- Main Visualizer -->
+            <div class="card visualizer-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-waveform"></i>
+                    </div>
+                    <h2 class="card-title">Live Audio Analysis</h2>
+                </div>
+                
+                <div class="current-detection">
+                    <div class="detection-class" id="currentClass">Ready to Monitor</div>
+                    <div class="confidence-meter">
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                        </div>
+                        <div class="confidence-text" id="confidenceText">0%</div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="startBtn">
+                        <i class="fas fa-play"></i>
+                        Start Monitoring
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" disabled>
+                        <i class="fas fa-stop"></i>
+                        Stop Monitoring
+                    </button>
+                </div>
+
+                <div class="waveform-container">
+                    <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="upload-section" id="uploadSection">
+                    <div class="upload-container">
+                        <div class="upload-icon">
+                            <i class="fas fa-file-audio"></i>
+                        </div>
+                        
+                        <div class="upload-text">
+                            <div class="upload-title">Test Audio Files</div>
+                            <div class="upload-subtitle">Upload audio files to analyze for security threats</div>
+                        </div>
+                        
+                        <div class="upload-buttons">
+                            <input type="file" id="audioFile" accept="audio/*" class="upload-input">
+                            <label for="audioFile" class="upload-label" id="uploadLabel">
+                                <i class="fas fa-folder-open"></i>
+                                <span>Choose File</span>
+                            </label>
+                            <button class="analyze-btn" id="uploadBtn">
+                                <i class="fas fa-brain"></i>
+                                <span>Analyze Audio</span>
+                            </button>
+                        </div>
+                        
+                        <div class="supported-formats">
+                            <span class="format-tag">MP3</span>
+                            <span class="format-tag">WAV</span>
+                            <span class="format-tag">M4A</span>
+                            <span class="format-tag">FLAC</span>
+                            <span class="format-tag">OGG</span>
+                        </div>
+                    </div>
+                    
+                    <div id="uploadResults" style="margin-top: 2rem; display: none;">
+                        <div id="fileResults"></div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="fps">--</div>
+                        <div class="metric-label">FPS</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalDetections">0</div>
+                        <div class="metric-label">Detections</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="alerts">0</div>
+                        <div class="metric-label">Alerts</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Alerts -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h2 class="card-title">Security Alerts</h2>
+                </div>
+                
+                <div id="currentAlert" style="display: none;"></div>
+                <div id="alertHistory">
+                    <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                        <i class="fas fa-shield-check" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <p>No security alerts detected</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Probabilities -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h2 class="card-title">Detection Confidence</h2>
+                </div>
+                
+                <div class="probability-bars" id="probabilities">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AudioMonitor {
+            constructor() {
+                this.socket = io();
+                this.isRecording = false;
+                this.mediaRecorder = null;
+                this.audioStream = null;
+                this.audioContext = null;
+                this.analyser = null;
+                this.totalDetections = 0;
+                this.totalAlerts = 0;
+                this.lastUpdate = Date.now();
+                
+                this.initializeElements();
+                this.setupSocketEvents();
+                this.setupEventListeners();
+                this.initializeWaveform();
+            }
+
+            initializeElements() {
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.currentClass = document.getElementById('currentClass');
+                this.confidenceText = document.getElementById('confidenceText');
+                this.confidenceFill = document.getElementById('confidenceFill');
+                this.currentAlert = document.getElementById('currentAlert');
+                this.alertHistory = document.getElementById('alertHistory');
+                this.probabilities = document.getElementById('probabilities');
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.waveformCanvas = document.getElementById('waveformCanvas');
+                this.fpsElement = document.getElementById('fps');
+                this.totalDetectionsElement = document.getElementById('totalDetections');
+                this.alertsElement = document.getElementById('alerts');
+            }
+
+            setupSocketEvents() {
+                this.socket.on('connect', () => {
+                    this.updateConnectionStatus(true);
+                });
+
+                this.socket.on('disconnect', () => {
+                    this.updateConnectionStatus(false);
+                });
+
+                this.socket.on('prediction', (data) => {
+                    this.handlePrediction(data);
+                });
+
+                this.socket.on('error', (error) => {
+                    console.error('Socket error:', error);
+                    this.showError(error.message);
+                });
+            }
+
+            setupEventListeners() {
+                this.startBtn.addEventListener('click', () => this.startRecording());
+                this.stopBtn.addEventListener('click', () => this.stopRecording());
+                
+                // File upload handling
+                const uploadBtn = document.getElementById('uploadBtn');
+                const audioFileInput = document.getElementById('audioFile');
+                const uploadLabel = document.getElementById('uploadLabel');
+                const uploadSection = document.getElementById('uploadSection');
+                
+                // Update label when file is selected
+                audioFileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const fileName = file.name.length > 25 ? 
+                            file.name.substring(0, 22) + '...' : file.name;
+                        uploadLabel.innerHTML = `<i class="fas fa-check-circle"></i><span>${fileName}</span>`;
+                        uploadLabel.classList.add('has-file');
+                    } else {
+                        uploadLabel.innerHTML = `<i class="fas fa-folder-open"></i><span>Choose File</span>`;
+                        uploadLabel.classList.remove('has-file');
+                    }
+                });
+                
+                // Drag and drop functionality
+                uploadSection.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadSection.classList.add('drag-over');
+                });
+                
+                uploadSection.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    uploadSection.classList.remove('drag-over');
+                });
+                
+                uploadSection.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadSection.classList.remove('drag-over');
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        const file = files[0];
+                        if (file.type.startsWith('audio/')) {
+                            audioFileInput.files = files;
+                            audioFileInput.dispatchEvent(new Event('change'));
+                        } else {
+                            alert('Please drop an audio file');
+                        }
+                    }
+                });
+                
+                uploadBtn.addEventListener('click', async () => {
+                    const file = audioFileInput.files[0];
+                    if (!file) {
+                        // Add shake animation to indicate missing file
+                        uploadSection.style.animation = 'shake 0.5s ease-in-out';
+                        setTimeout(() => {
+                            uploadSection.style.animation = '';
+                        }, 500);
+                        return;
+                    }
+                    
+                    const formData = new FormData();
+                    formData.append('audio', file);
+                    
+                    uploadBtn.disabled = true;
+                    uploadBtn.classList.add('loading');
+                    uploadBtn.innerHTML = '<div class="loading"></div><span>Analyzing...</span>';
+                    
+                    try {
+                        const response = await fetch('/api/test_audio_file', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        this.displayUploadResults(result);
+                    } catch (error) {
+                        alert('Error testing file: ' + error.message);
+                    } finally {
+                        uploadBtn.disabled = false;
+                        uploadBtn.classList.remove('loading');
+                        uploadBtn.innerHTML = '<i class="fas fa-brain"></i><span>Analyze Audio</span>';
+                    }
+                });
+            }
+            
+            displayUploadResults(result) {
+                const resultsDiv = document.getElementById('uploadResults');
+                const fileResultsDiv = document.getElementById('fileResults');
+                
+                resultsDiv.style.display = 'block';
+                
+                if (result.error) {
+                    fileResultsDiv.innerHTML = `<div style="color: var(--danger);">Error: ${result.error}</div>`;
+                    return;
+                }
+                
+                let html = `
+                    <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: var(--accent-primary);">${result.filename}</div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">Filename</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: var(--accent-primary);">${result.duration.toFixed(2)}s</div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">Duration</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: var(--accent-primary);">${result.total_predictions}</div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">Predictions</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                if (result.alerts_found.length > 0) {
+                    html += '<div style="margin-bottom: 1rem;"><strong style="color: var(--danger);">🚨 Security Alerts Detected:</strong></div>';
+                    result.alerts_found.forEach(item => {
+                        const alert = item.alert;
+                        const startTime = this.formatTime(item.start_time);
+                        const endTime = this.formatTime(item.end_time);
+                        html += `
+                            <div class="alert-item alert-${alert.level.toLowerCase()}" style="margin-bottom: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>${alert.message}</strong>
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                            Detected in: ${startTime} - ${endTime}
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-weight: 600;">${Math.round(item.confidence * 100)}%</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">confidence</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += `
+                        <div style="text-align: center; padding: 2rem; background: rgba(16, 185, 129, 0.1); border-radius: 12px; color: var(--success);">
+                            <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                            <div>No security threats detected</div>
+                        </div>
+                    `;
+                }
+                
+                // Show all predictions in collapsible
+                html += `
+                    <details style="margin-top: 1.5rem;">
+                        <summary style="cursor: pointer; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 0.5rem;">
+                            View All Predictions
+                        </summary>
+                        <div style="max-height: 300px; overflow-y: auto; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                `;
+                
+                result.all_results.forEach(pred => {
+                    const isAlert = pred.alert ? '🚨' : '';
+                    const startTime = this.formatTime(pred.start_time);
+                    const endTime = this.formatTime(pred.end_time);
+                    html += `
+                        <div style="padding: 0.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div>${pred.class.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">${startTime} - ${endTime}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="color: ${pred.confidence > 0.7 ? 'var(--success)' : pred.confidence > 0.4 ? 'var(--warning)' : 'var(--text-secondary)'}; font-weight: 600;">
+                                    ${Math.round(pred.confidence * 100)}% ${isAlert}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></details>';
+                
+                fileResultsDiv.innerHTML = html;
+            }
+
+            updateConnectionStatus(connected) {
+                if (connected) {
+                    this.statusIndicator.className = 'status-indicator connected';
+                    this.connectionStatus.textContent = 'Connected';
+                } else {
+                    this.statusIndicator.className = 'status-indicator';
+                    this.connectionStatus.textContent = 'Disconnected';
+                }
+            }
+
+            initializeWaveform() {
+                const canvas = this.waveformCanvas;
+                const ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                
+                // Initialize with flat line
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height / 2);
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+            }
+
+            async startRecording() {
+                try {
+                    this.audioStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            sampleRate: 22050,
+                            channelCount: 1,
+                            echoCancellation: false,
+                            noiseSuppression: false
+                        } 
+                    });
+
+                    this.setupAudioProcessing();
+                    
+                    this.isRecording = true;
+                    this.startBtn.disabled = true;
+                    this.stopBtn.disabled = false;
+                    
+                    this.currentClass.textContent = 'Monitoring...';
+                    this.statusIndicator.className = 'status-indicator recording';
+
+                    this.processAudioStream();
+
+                } catch (error) {
+                    console.error('Error starting recording:', error);
+                    this.showError('Microphone access denied or not available');
+                }
+            }
+
+            setupAudioProcessing() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.analyser = this.audioContext.createAnalyser();
+                
+                const source = this.audioContext.createMediaStreamSource(this.audioStream);
+                source.connect(this.analyser);
+                
+                this.analyser.fftSize = 256;
+                this.bufferLength = this.analyser.frequencyBinCount;
+                this.dataArray = new Uint8Array(this.bufferLength);
+            }
+
+            processAudioStream() {
+                if (!this.isRecording) return;
+
+                const recordingLength = 4000; // 4 seconds
+                const chunks = [];
+
+                this.mediaRecorder = new MediaRecorder(this.audioStream);
+                
+                this.mediaRecorder.ondataavailable = (event) => {
+                    chunks.push(event.data);
+                };
+
+                this.mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/wav' });
+                    this.convertBlobToAudioData(blob);
+                };
+
+                // Record for 4 seconds
+                this.mediaRecorder.start();
+                setTimeout(() => {
+                    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                        this.mediaRecorder.stop();
+                        // Schedule next recording
+                        setTimeout(() => this.processAudioStream(), 1000);
+                    }
+                }, recordingLength);
+
+                // Update waveform
+                this.updateWaveform();
+            }
+
+            async convertBlobToAudioData(blob) {
+                try {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                    
+                    // Get audio data (mono)
+                    const audioData = audioBuffer.getChannelData(0);
+                    
+                    // Resample to 22050 Hz if needed
+                    let resampledData = audioData;
+                    if (audioBuffer.sampleRate !== 22050) {
+                        const ratio = 22050 / audioBuffer.sampleRate;
+                        const newLength = Math.floor(audioData.length * ratio);
+                        resampledData = new Float32Array(newLength);
+                        
+                        for (let i = 0; i < newLength; i++) {
+                            const srcIndex = i / ratio;
+                            const srcIndexFloor = Math.floor(srcIndex);
+                            const srcIndexCeil = Math.ceil(srcIndex);
+                            const fraction = srcIndex - srcIndexFloor;
+                            
+                            if (srcIndexCeil < audioData.length) {
+                                resampledData[i] = audioData[srcIndexFloor] * (1 - fraction) + 
+                                                  audioData[srcIndexCeil] * fraction;
+                            } else {
+                                resampledData[i] = audioData[srcIndexFloor];
+                            }
+                        }
+                    }
+                    
+                    // Convert to base64 in chunks to avoid stack overflow
+                    const float32Array = new Float32Array(resampledData);
+                    const uint8Array = new Uint8Array(float32Array.buffer);
+                    
+                    let binary = '';
+                    const chunkSize = 8192;
+                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                        const chunk = uint8Array.slice(i, i + chunkSize);
+                        binary += String.fromCharCode.apply(null, chunk);
+                    }
+                    const base64Audio = btoa(binary);
+                    
+                    console.log('Sending audio data:', {
+                        originalSampleRate: audioBuffer.sampleRate,
+                        samples: resampledData.length,
+                        duration: resampledData.length / 22050
+                    });
+                    
+                    // Send to server
+                    this.socket.emit('audio_data', { audio: base64Audio });
+                    
+                } catch (error) {
+                    console.error('Error processing audio:', error);
+                }
+            }
+
+            updateWaveform() {
+                if (!this.analyser || !this.isRecording) return;
+
+                this.analyser.getByteFrequencyData(this.dataArray);
+
+                const canvas = this.waveformCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                
+                // Clear canvas
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw frequency bars
+                const barWidth = (canvas.width / this.bufferLength) * 2.5;
+                let x = 0;
+                
+                for (let i = 0; i < this.bufferLength; i++) {
+                    const barHeight = (this.dataArray[i] / 255) * canvas.height;
+                    
+                    // Create gradient effect
+                    const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
+                    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.8)');
+                    gradient.addColorStop(1, 'rgba(139, 92, 246, 0.8)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    
+                    x += barWidth + 1;
+                }
+                
+                requestAnimationFrame(() => this.updateWaveform());
+            }
+
+            stopRecording() {
+                this.isRecording = false;
+                
+                if (this.mediaRecorder) {
+                    this.mediaRecorder.stop();
+                }
+                
+                if (this.audioStream) {
+                    this.audioStream.getTracks().forEach(track => track.stop());
+                }
+                
+                if (this.audioContext) {
+                    this.audioContext.close();
+                }
+
+                this.startBtn.disabled = false;
+                this.stopBtn.disabled = true;
+                this.currentClass.textContent = 'Monitoring Stopped';
+                this.statusIndicator.className = 'status-indicator connected';
+                
+                // Clear waveform
+                const canvas = this.waveformCanvas;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                this.initializeWaveform();
+            }
+
+            handlePrediction(data) {
+                this.totalDetections++;
+                this.lastUpdate = Date.now();
+                
+                // Update main display
+                const className = data.class.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const confidence = Math.round(data.confidence * 100);
+                
+                this.currentClass.textContent = `${this.getClassEmoji(data.class)} ${className}`;
+                this.confidenceText.textContent = `${confidence}%`;
+                this.confidenceFill.style.width = `${confidence}%`;
+                
+                // Update probabilities
+                this.updateProbabilities(data.probabilities);
+                
+                // Handle alerts
+                if (data.alert) {
+                    this.showAlert(data.alert);
+                    this.totalAlerts++;
+                }
+                
+                // Update metrics
+                this.updateMetrics();
+            }
+
+            updateProbabilities(probabilities) {
+                this.probabilities.innerHTML = '';
+                
+                // Sort probabilities by value
+                const sortedProbs = Object.entries(probabilities)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5); // Show top 5
+                
+                sortedProbs.forEach(([className, prob]) => {
+                    const percentage = Math.round(prob * 100);
+                    const item = document.createElement('div');
+                    item.className = 'prob-item';
+                    
+                    const formattedName = className.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    
+                    item.innerHTML = `
+                        <div class="prob-label">${this.getClassEmoji(className)} ${formattedName}</div>
+                        <div class="prob-bar">
+                            <div class="prob-fill" style="width: ${percentage}%; background: ${this.getClassColor(className)}"></div>
+                        </div>
+                        <div class="prob-value">${percentage}%</div>
+                    `;
+                    
+                    this.probabilities.appendChild(item);
+                });
+            }
+
+            showAlert(alert) {
+                // Show current alert
+                this.currentAlert.style.display = 'block';
+                this.currentAlert.className = `alert-item alert-${alert.level.toLowerCase()}`;
+                this.currentAlert.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>${alert.message}</strong>
+                        <span style="font-size: 0.875rem;">
+                            ${Math.round(alert.confidence * 100)}% confidence
+                        </span>
+                    </div>
+                `;
+                
+                // Add to history
+                this.addAlertToHistory(alert);
+                
+                // Hide current alert after 5 seconds
+                setTimeout(() => {
+                    this.currentAlert.style.display = 'none';
+                }, 5000);
+                
+                // Flash the background for critical alerts (disabled for better UX)
+                // if (alert.level === 'CRITICAL') {
+                //     document.body.style.animation = 'criticalFlash 0.5s ease-in-out';
+                //     setTimeout(() => {
+                //         document.body.style.animation = '';
+                //     }, 500);
+                // }
+            }
+
+            addAlertToHistory(alert) {
+                // Clear "no alerts" message
+                if (this.alertHistory.children.length === 1 && 
+                    this.alertHistory.children[0].textContent.includes('No security alerts')) {
+                    this.alertHistory.innerHTML = '';
+                }
+                
+                const item = document.createElement('div');
+                item.className = `alert-item alert-${alert.level.toLowerCase()}`;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${alert.message}</strong>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                ${timestamp}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.25rem; font-weight: 600;">
+                                ${Math.round(alert.confidence * 100)}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                this.alertHistory.insertBefore(item, this.alertHistory.firstChild);
+                
+                // Keep only last 10 alerts
+                while (this.alertHistory.children.length > 10) {
+                    this.alertHistory.removeChild(this.alertHistory.lastChild);
+                }
+            }
+
+            updateMetrics() {
+                const now = Date.now();
+                const timeDiff = (now - this.lastUpdate) / 1000;
+                const fps = timeDiff > 0 ? (1 / timeDiff).toFixed(1) : '--';
+                
+                this.fpsElement.textContent = fps;
+                this.totalDetectionsElement.textContent = this.totalDetections;
+                this.alertsElement.textContent = this.totalAlerts;
+            }
+
+            getClassEmoji(className) {
+                const emojis = {
+                    'air_conditioner': '❄️',
+                    'car_horn': '🚗',
+                    'children_playing': '👶',
+                    'dog_bark': '🐕',
+                    'drilling': '🔧',
+                    'engine_idling': '🚛',
+                    'gun_shot': '🔫',
+                    'jackhammer': '🔨',
+                    'siren': '🚨',
+                    'street_music': '🎵'
+                };
+                return emojis[className] || '🔊';
+            }
+
+            getClassColor(className) {
+                const colors = {
+                    'gun_shot': 'var(--danger)',
+                    'siren': 'var(--warning)',
+                    'dog_bark': '#fbbf24',
+                    'car_horn': 'var(--accent-primary)',
+                    'default': 'var(--accent-secondary)'
+                };
+                return colors[className] || colors.default;
+            }
+
+            formatTime(seconds) {
+                if (seconds < 60) {
+                    return `${seconds.toFixed(1)}s`;
+                } else {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    return `${minutes}:${remainingSeconds.toFixed(1).padStart(4, '0')}`;
+                }
+            }
+
+            showError(message) {
+                this.currentClass.textContent = `❌ Error: ${message}`;
+                this.currentClass.style.color = 'var(--danger)';
+            }
+        }
+
+        // Add critical flash animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes criticalFlash {
+                0%, 100% { 
+                    background: var(--bg-primary); 
+                    box-shadow: none;
+                }
+                50% { 
+                    background: rgba(239, 68, 68, 0.05); 
+                    box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.1);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize the audio monitor when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AudioMonitor();
+        });
+    </script>
+</body>
+</html>
