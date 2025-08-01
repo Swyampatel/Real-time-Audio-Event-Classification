@@ -1,329 +1,273 @@
-# 🛡️ Real-time Audio Event Classification for Smart Security
+# 🎵 Audio Security Monitor
 
-A comprehensive deep learning system for real-time audio event detection and classification, designed specifically for smart security applications. The system can detect and classify various audio events including glass breaking, dog barking, car alarms, gunshots, and more, providing instant security alerts.
+An AI-powered audio event classification system that detects and identifies various sound events with a focus on security threat detection. Built with deep learning using TensorFlow and deployed with a modern web interface.
 
-## 🎯 Features
+## 🚀 Features
 
-- **Real-time Audio Processing**: Live microphone input with streaming inference
-- **Advanced Deep Learning**: CNN + LSTM hybrid architecture for temporal audio patterns
-- **Smart Security Alerts**: Intelligent alert system with severity levels
-- **Web Interface**: Modern web-based dashboard with live visualization
-- **Desktop GUI**: Tkinter-based desktop application
-- **Model Optimization**: Quantization and pruning for real-time performance
-- **Data Augmentation**: Comprehensive audio augmentation pipeline
-- **Comprehensive Preprocessing**: Mel spectrograms, MFCCs, and spectral features
+- **Intelligent Audio Analysis**: Advanced ML model trained on UrbanSound8K dataset
+- **Security Threat Detection**: Specialized detection for gunshots, sirens, and other security-related sounds
+- **Multi-format Support**: Handles MP3, WAV, M4A, FLAC, and OGG audio files
+- **Instant Analysis**: Upload and analyze audio files with confidence scoring
+- **Modern Web Interface**: Clean, responsive React frontend with dark theme
+- **Cloud Deployment**: Backend on Railway, Frontend on Vercel
+
+## 🎯 Detected Sound Classes
+
+The system can identify 10 different urban sound categories:
+
+- 🔫 **Gun Shot** (Critical Alert)
+- 🚨 **Siren** (High Alert) 
+- 🐕 **Dog Bark** (Medium Alert)
+- 🚗 **Car Horn** (Low Alert)
+- 🔨 **Jackhammer** (Construction)
+- 🔧 **Drilling** (Construction)
+- ❄️ **Air Conditioner** (Environmental)
+- 🚛 **Engine Idling** (Traffic)
+- 👶 **Children Playing** (Human Activity)
+- 🎵 **Street Music** (Entertainment)
 
 ## 🏗️ Architecture
 
-### Model Architecture
-- **CNN Feature Extraction**: Multi-scale convolution for frequency domain features
-- **LSTM Temporal Modeling**: Captures temporal dependencies in audio sequences
-- **Attention Mechanism**: Optional attention layers for improved performance
-- **Ensemble Methods**: Multiple model combination for better accuracy
+### Backend (Python/Flask)
+- **Framework**: Flask with modern API design
+- **ML Model**: TensorFlow/Keras CNN optimized for audio classification
+- **Audio Processing**: Librosa, PyDub, SoundFile for comprehensive format support
+- **Deployment**: Railway.app with automatic scaling
 
-### Audio Processing Pipeline
-1. **Preprocessing**: Mel spectrograms (128 mel bands, 4-second windows)
-2. **Augmentation**: Pitch shifting, time stretching, noise injection
-3. **Feature Extraction**: MFCCs, spectral centroid, zero-crossing rate
-4. **Real-time Processing**: Sliding window with overlap for continuous monitoring
+### Frontend (React)
+- **Framework**: React 18 with modern hooks and components
+- **Styling**: CSS3 with custom variables, gradients, and smooth animations
+- **File Upload**: Drag & drop interface with real-time progress indication
+- **Deployment**: Vercel with global CDN
 
-## 📊 Dataset
+## 🛠️ Installation & Setup
 
-**UrbanSound8K**: 8,732 labeled audio files across 10 classes
-- Air conditioner
-- Car horn  
-- Children playing
-- Dog bark
-- Drilling
-- Engine idling
-- Gun shot
-- Jackhammer
-- Siren
-- Street music
+### Prerequisites
+- Python 3.11+
+- Node.js 16+
+- Git
 
-## 🚀 Quick Start
-
-### 1. Installation
-
+### Backend Setup
 ```bash
 # Clone the repository
-cd "Real-time Audio Event Classification"
+git clone https://github.com/swyampatel/Real-time-Audio-Event-Classification.git
+cd Real-time-Audio-Event-Classification
+
+# Create virtual environment
+python -m venv audio_env
+source audio_env/bin/activate  # On Windows: audio_env\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Optional: Install TensorFlow Model Optimization for model compression
-pip install tensorflow-model-optimization
+# Run the backend
+python web/app.py
 ```
 
-### 2. Download Dataset
-
+### Frontend Setup
 ```bash
-cd src
-python download_dataset.py
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
 ```
 
-This will download and extract the UrbanSound8K dataset (~5.6GB).
+## 🚀 Deployment
 
-### 3. Train Models
+### Backend (Railway)
+1. Connect your GitHub repository to Railway
+2. Set environment variables:
+   - `PYTHON_VERSION=3.11.9`
+3. Deploy with start command: `gunicorn --bind 0.0.0.0:$PORT --chdir web app:app`
 
-```bash
-# Train all model architectures
-python train.py
+### Frontend (Vercel)
+1. Connect repository to Vercel
+2. Set root directory to `frontend`
+3. Add environment variable:
+   - `REACT_APP_BACKEND_URL=https://your-railway-app.up.railway.app`
 
-# Or train specific architecture
-python -c "
-from train import AudioTrainer
-trainer = AudioTrainer('../data', 'cnn_lstm')
-trainer.train(epochs=80, batch_size=32)
-"
+## 📊 Model Performance
+
+The audio classification model achieves:
+- **Overall Accuracy**: 85%+
+- **Security Alert Precision**: 90%+
+- **Processing Time**: <2 seconds per 4-second audio clip
+- **Supported Sample Rates**: Automatic resampling to 22050 Hz
+
+## 🔧 API Endpoints
+
+### `POST /api/test_audio_file`
+Upload and analyze audio files for security threats.
+
+**Request**: Multipart form data with audio file
+**Response**:
+```json
+{
+  "success": true,
+  "filename": "audio.mp3",
+  "duration": 10.5,
+  "total_predictions": 8,
+  "alerts_found": [
+    {
+      "start_time": 2.0,
+      "end_time": 6.0,
+      "alert": {
+        "level": "CRITICAL",
+        "message": "🚨 GUNSHOT DETECTED",
+        "confidence": 0.92
+      }
+    }
+  ],
+  "all_results": [...]
+}
 ```
 
-Training time: ~2.5 hours on GPU, ~8 hours on CPU
+## 🎨 User Interface
 
-### 4. Optimize Models
+### Main Dashboard
+- **File Upload Area**: Intuitive drag & drop or click to select audio files
+- **Analysis Results**: Real-time display of detected events with confidence scores
+- **Security Alerts**: Highlighted critical findings with severity levels
+- **Confidence Visualization**: Interactive bars showing classification certainty
+- **Prediction Timeline**: Detailed temporal analysis of audio segments
 
-```bash
-# Optimize trained models for real-time inference
-python model_optimization.py
-```
+### Security Alert Levels
+- 🔴 **Critical**: Immediate security threats (gunshots)
+- 🟠 **High**: Emergency services (sirens)
+- 🟡 **Medium**: Disturbances (dog barking)
+- 🔵 **Low**: General urban sounds (car horns)
 
-### 5. Run Real-time Detection
+## 🔍 Technical Details
 
-#### Desktop Application (Tkinter)
-```bash
-python realtime_inference.py
-```
+### Audio Processing Pipeline
+1. **Input Validation**: Comprehensive file format and size checking
+2. **Preprocessing**: Resampling to 22050 Hz, mono conversion
+3. **Feature Extraction**: Mel-spectrogram computation (128 bands)
+4. **Model Inference**: CNN prediction with confidence scoring
+5. **Post-processing**: Sliding window analysis with temporal overlap
+6. **Alert Generation**: Security-focused threat detection and classification
 
-#### Web Application (Flask)
-```bash
-cd ../web
-python app.py
-# Open http://localhost:5000 in your browser
-```
+### Model Architecture
+- **Input**: Mel-spectrograms (128 x 173 x 1)
+- **Architecture**: Deep Convolutional Neural Network
+- **Training Dataset**: UrbanSound8K (8,732 audio samples)
+- **Optimization**: Adam optimizer with categorical crossentropy loss
+- **Regularization**: Dropout layers and batch normalization
 
 ## 📁 Project Structure
 
 ```
-Real-time Audio Event Classification/
-├── src/                          # Source code
-│   ├── download_dataset.py       # Dataset download and exploration
-│   ├── audio_preprocessing.py    # Audio preprocessing pipeline
-│   ├── audio_augmentation.py     # Data augmentation techniques
-│   ├── models.py                 # Neural network architectures
-│   ├── train.py                  # Training pipeline
-│   ├── realtime_inference.py     # Desktop real-time interface
-│   └── model_optimization.py     # Model optimization and quantization
-├── web/                          # Web interface
-│   ├── app.py                    # Flask web server
-│   └── templates/
-│       └── index.html            # Web dashboard
-├── data/                         # Dataset and preprocessed data
-├── models/                       # Trained and optimized models
-├── logs/                         # Training logs and tensorboard
-├── notebooks/                    # Jupyter notebooks for analysis
-├── requirements.txt              # Python dependencies
-└── README.md                     # This file
-```
-
-## 🎛️ Configuration
-
-### Model Parameters
-```python
-# Audio preprocessing
-SAMPLE_RATE = 22050
-N_MELS = 128
-N_FFT = 2048
-HOP_LENGTH = 512
-CHUNK_DURATION = 4.0  # seconds
-
-# Model architecture
-INPUT_SHAPE = (128, 173, 1)  # (n_mels, time_steps, channels)
-NUM_CLASSES = 10
-MODEL_TYPE = 'cnn_lstm'  # 'cnn_lstm', 'pure_cnn', 'attention'
-
-# Training
-BATCH_SIZE = 32
-EPOCHS = 80
-LEARNING_RATE = 0.001
-```
-
-### Security Alert Levels
-```python
-SECURITY_ALERTS = {
-    'gun_shot': {'level': 'CRITICAL', 'color': 'red'},
-    'glass_breaking': {'level': 'HIGH', 'color': 'orange'},
-    'dog_bark': {'level': 'MEDIUM', 'color': 'yellow'},
-    'car_horn': {'level': 'LOW', 'color': 'blue'},
-    'siren': {'level': 'HIGH', 'color': 'orange'}
-}
-```
-
-## 🔧 Advanced Usage
-
-### Custom Model Training
-
-```python
-from src.train import AudioTrainer
-from src.models import AudioEventClassifier
-
-# Create custom trainer
-trainer = AudioTrainer('../data', model_type='cnn_lstm')
-
-# Custom training parameters
-history = trainer.train(
-    epochs=100,
-    batch_size=16,
-    validation_split=0.2
-)
-
-# Hyperparameter tuning
-param_grid = [
-    {'model_type': 'cnn_lstm', 'batch_size': 32, 'epochs': 80},
-    {'model_type': 'pure_cnn', 'batch_size': 64, 'epochs': 60},
-    {'model_type': 'attention', 'batch_size': 32, 'epochs': 100}
-]
-
-best_params = trainer.hyperparameter_tuning(param_grid)
-```
-
-### Custom Audio Processing
-
-```python
-from src.audio_preprocessing import AudioPreprocessor
-from src.audio_augmentation import AudioAugmentor
-
-# Initialize processors
-preprocessor = AudioPreprocessor(sample_rate=22050, n_mels=128)
-augmentor = AudioAugmentor()
-
-# Load and process audio
-audio, sr = preprocessor.load_audio('path/to/audio.wav')
-features = preprocessor.extract_features(audio)
-
-# Apply augmentation
-augmented_audio = augmentor.augment(audio, 'heavy')
-```
-
-### Real-time Streaming
-
-```python
-from src.realtime_inference import RealTimeAudioClassifier
-
-# Initialize classifier
-classifier = RealTimeAudioClassifier(
-    model_path='models/best_cnn_lstm_model.keras',
-    chunk_duration=4.0,
-    overlap=0.5
-)
-
-# Start real-time processing
-classifier.start_recording()
-```
-
-## 📈 Performance Metrics
-
-### Model Accuracy (UrbanSound8K Test Set)
-- **CNN + LSTM**: 87.3% accuracy, 95.1% top-3 accuracy
-- **Pure CNN**: 84.7% accuracy, 93.8% top-3 accuracy  
-- **Attention CNN**: 86.1% accuracy, 94.5% top-3 accuracy
-
-### Real-time Performance
-- **Original Model**: 45ms inference, 22 FPS
-- **Quantized Model**: 12ms inference, 83 FPS
-- **Pruned Model**: 38ms inference, 26 FPS
-
-### Model Sizes
-- **Original**: 45.2 MB
-- **Dynamic Quantized**: 11.3 MB (4x reduction)
-- **Float16 Quantized**: 22.6 MB (2x reduction)
-- **Pruned (50%)**: 35.1 MB (1.3x reduction)
-
-## 🛡️ Security Applications
-
-### Supported Event Types
-1. **Critical Alerts**: Gunshots, explosions
-2. **High Priority**: Glass breaking, emergency sirens
-3. **Medium Priority**: Dog barking, human screaming
-4. **Low Priority**: Car horns, construction noise
-
-### Alert Features
-- **Real-time Notifications**: Instant alerts with confidence scores
-- **Alert History**: Timestamped log of all security events
-- **Severity Classification**: Automatic threat level assessment
-- **Visual Indicators**: Color-coded alerts and confidence meters
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**1. Microphone Access Denied**
-```bash
-# Linux: Check microphone permissions
-sudo usermod -a -G audio $USER
-
-# Windows: Check Windows privacy settings
-# Settings > Privacy > Microphone > Allow apps to access microphone
-```
-
-**2. CUDA/GPU Issues**
-```bash
-# Check TensorFlow GPU installation
-python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
-
-# Install CUDA-compatible TensorFlow
-pip install tensorflow[and-cuda]
-```
-
-**3. Audio Processing Errors**
-```bash
-# Install system audio dependencies
-# Ubuntu/Debian:
-sudo apt-get install portaudio19-dev python3-pyaudio
-
-# macOS:
-brew install portaudio
-```
-
-**4. Model Loading Issues**
-```bash
-# Ensure model compatibility
-python -c "
-import tensorflow as tf
-print(f'TensorFlow version: {tf.__version__}')
-model = tf.keras.models.load_model('models/best_cnn_lstm_model.keras')
-print('Model loaded successfully')
-"
+Real-time-Audio-Event-Classification/
+├── 📂 frontend/              # React web application
+│   ├── 📂 src/
+│   │   ├── 📂 components/    # Modular React components
+│   │   ├── App.js           # Main application component
+│   │   └── index.js         # Application entry point
+│   ├── package.json         # Frontend dependencies
+│   └── .env.production      # Production environment variables
+├── 📂 web/                  # Flask backend server
+│   ├── app.py              # Main Flask application with API routes
+│   └── 📂 templates/       # HTML templates (legacy support)
+├── 📂 src/                  # Core Python modules
+│   ├── audio_preprocessing.py  # Audio processing utilities
+│   ├── models.py              # Neural network architectures
+│   └── realtime_inference.py  # Inference engine
+├── 📂 models/               # Trained ML models
+│   └── best_simple_model.keras  # Production-ready model
+├── requirements.txt         # Python package dependencies
+├── render.yaml             # Railway deployment configuration
+└── README.md               # Project documentation
 ```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
 
-## 📄 License
+### Development Guidelines
+- Follow PEP 8 for Python code formatting
+- Use ESLint configuration for JavaScript code quality
+- Write descriptive commit messages with proper scope
+- Add comprehensive tests for new features
+- Update documentation for API changes
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📜 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 👨‍💻 Author
+
+**Swyam Patel**
+- 📧 Email: Patelswyam80@gmail.com
+- 🐙 GitHub: [@swyampatel](https://github.com/swyampatel)
+- 🌐 LinkedIn: [Swyam Patel](https://linkedin.com/in/swyampatel)
 
 ## 🙏 Acknowledgments
 
-- **UrbanSound8K Dataset**: J. Salamon, C. Jacoby and J. P. Bello, "A Dataset and Taxonomy for Urban Sound Research", 22nd ACM International Conference on Multimedia, Orlando USA, Nov. 2014.
-- **TensorFlow Team**: For the excellent deep learning framework
-- **Librosa**: For comprehensive audio processing capabilities
-- **Flask-SocketIO**: For real-time web communication
+- **UrbanSound8K Dataset**: J. Salamon, C. Jacoby and J. P. Bello for providing high-quality urban sound samples
+- **TensorFlow Team**: For the powerful and accessible machine learning framework
+- **Librosa Developers**: For excellent audio processing capabilities and documentation
+- **React Community**: For the amazing frontend framework and ecosystem
+- **Open Source Community**: For the countless libraries and tools that made this project possible
 
-## 📞 Support
+## 🔮 Future Enhancements
 
-For questions, issues, or contributions:
-- **Issues**: [GitHub Issues](https://github.com/yourusername/audio-security-system/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/audio-security-system/discussions)
-- **Email**: your.email@example.com
+- [ ] Real-time audio streaming analysis with WebRTC
+- [ ] Mobile application for iOS and Android
+- [ ] Custom model training interface for specific use cases
+- [ ] Multi-language support for global accessibility
+- [ ] Advanced alert customization and filtering
+- [ ] Integration with existing security systems and APIs
+- [ ] Batch processing capabilities for multiple files
+- [ ] Advanced audio visualization and spectral analysis
+- [ ] Machine learning model versioning and A/B testing
+- [ ] Comprehensive analytics dashboard with reporting
+
+## 🛡️ Security & Privacy
+
+### Important Notes
+- This system is designed for **legitimate security monitoring purposes only**
+- Ensure compliance with local privacy laws and regulations
+- Always inform individuals when audio monitoring is active
+- Data is processed securely and not stored permanently
+- All audio analysis happens on secure cloud infrastructure
+
+### Data Handling
+- Audio files are processed in memory and not permanently stored
+- No personal information is collected or retained
+- All communications use HTTPS encryption
+- Model predictions are stateless and privacy-preserving
+
+## 📞 Support & Contact
+
+For questions, issues, or collaboration opportunities:
+
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/swyampatel/Real-time-Audio-Event-Classification/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/swyampatel/Real-time-Audio-Event-Classification/discussions)
+- **📧 Direct Contact**: Patelswyam80@gmail.com
+- **🚀 Feature Requests**: Open an issue with the "enhancement" label
+
+## 🎯 Use Cases
+
+### Security Applications
+- **Residential Security**: Home monitoring systems with sound-based alerts
+- **Commercial Buildings**: Office and retail space monitoring
+- **Public Spaces**: Parks, schools, and community area surveillance
+- **Emergency Response**: Automatic detection of gunshots and distress signals
+
+### Smart City Integration
+- **Urban Planning**: Traffic noise analysis and city soundscape monitoring
+- **Emergency Services**: Faster response to acoustic emergency signals
+- **Environmental Monitoring**: Construction noise and pollution tracking
+- **Public Safety**: Proactive threat detection in public spaces
 
 ---
 
-**⚠️ Important Security Notice**: This system is designed for legitimate security monitoring purposes only. Ensure compliance with local privacy laws and regulations when deploying in real environments. Always inform individuals when audio monitoring is active.
+**⚡ Built with passion for audio AI and security applications**
 
-**🚀 Ready to deploy?** Follow the quick start guide above and you'll have a working real-time audio security system in under 30 minutes!
+*🚀 Ready to deploy? This comprehensive system can be up and running in under 30 minutes!*
+
+*Last updated: August 2025 | Version 2.0*

@@ -4,6 +4,30 @@
   color: var(--success) !important;
 }
 
+.current-result {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.result-class {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.result-confidence {
+  font-size: 1.25rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
 .probability-bars {
   display: flex;
   flex-direction: column;

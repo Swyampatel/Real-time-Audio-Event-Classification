@@ -1,7 +1,7 @@
 import React from 'react';
 import './ProbabilityChart.css';
 
-const ProbabilityChart = ({ probabilities = {} }) => {
+const ProbabilityChart = ({ probabilities = {}, currentClass, confidence }) => {
   const getClassEmoji = (className) => {
     const emojis = {
       'air_conditioner': '❄️',
@@ -44,13 +44,24 @@ const ProbabilityChart = ({ probabilities = {} }) => {
         <div className="card-icon probability-icon">
           <i className="fas fa-chart-bar"></i>
         </div>
-        <h2 className="card-title">Detection Confidence</h2>
+        <h2 className="card-title">Last Analysis Results</h2>
       </div>
+      
+      {currentClass && (
+        <div className="current-result">
+          <div className="result-class">
+            {getClassEmoji(currentClass)} {formatClassName(currentClass)}
+          </div>
+          <div className="result-confidence">
+            {Math.round(confidence * 100)}% confidence
+          </div>
+        </div>
+      )}
       
       <div className="probability-bars">
         {sortedProbs.length === 0 ? (
           <div className="no-data">
-            <p>No prediction data available</p>
+            <p>Upload an audio file to see analysis results</p>
           </div>
         ) : (
           sortedProbs.map(([className, prob]) => {

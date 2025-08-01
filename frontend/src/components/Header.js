@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
 
-const Header = ({ isConnected, isRecording }) => {
+const Header = () => {
   return (
     <header className="header">
       <div className="header-content">
@@ -11,12 +11,12 @@ const Header = ({ isConnected, isRecording }) => {
           </div>
           <div className="logo-text">
             <h1>Audio Security Monitor</h1>
-            <p>Real-time threat detection system</p>
+            <p>AI-powered audio threat detection</p>
           </div>
         </div>
         <div className="status-badge">
-          <div className={`status-indicator ${isConnected ? 'connected' : ''} ${isRecording ? 'recording' : ''}`}></div>
-          <span>{isConnected ? (isRecording ? 'Recording' : 'Connected') : 'Disconnected'}</span>
+          <div className="status-indicator connected"></div>
+          <span>Ready for Analysis</span>
         </div>
       </div>
     </header>
