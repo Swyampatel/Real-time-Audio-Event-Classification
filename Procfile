@@ -1,1 +1,1 @@
-web: cd web && python app.py
+web: gunicorn --worker-class eventlet -w 1 --chdir web app:app

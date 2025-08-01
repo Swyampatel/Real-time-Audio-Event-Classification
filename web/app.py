@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 import numpy as np
 import tensorflow as tf
 import librosa
@@ -19,6 +20,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from audio_preprocessing import AudioPreprocessor
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 class WebAudioClassifier:
